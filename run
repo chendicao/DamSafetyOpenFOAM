@@ -1,0 +1,96 @@
+#!/bin/bash
+#
+#-------------------------------------------------#
+# Contributor: Tobias Holzmann                    #
+# Updated on:  13 November 2017                   #
+#-------------------------------------------------#
+# Topic:       Hydraulic Jump                     #
+# OpenFOAM:    5.x                                #
+#-------------------------------------------------#
+# Website:     https://Holzmann-cfd.de            #
+# Email:       Tobias.Holzmann@Holzmann-cfd.de    #
+#-------------------------------------------------#
+
+
+#------------------------------------------------------------------------------
+foamVersion="OpenFOAM-5.x"
+
+
+#------------------------------------------------------------------------------
+cd ${0%/*} || exit 1
+clear
+source clean
+source .color
+source .preamble
+
+#------------------------------------------------------------------------------
+echo -e "\n
+Start meshing
+-------------------------------------------------------------------------------
+"
+start_time=`date +%s`
+
+#------------------------------------------------------------------------------
+echo -e "   - Create background mesh"
+ideasUnvToFoam cad/backgroundMesh.unv > logFile
+
+
+#------------------------------------------------------------------------------
+echo -e "   - Change one boundary name (from old versions, depreciated)"
+sed 's/outletGroovy/outlet/' constant/polyMesh/boundary -i
+
+
+#------------------------------------------------------------------------------
+echo -e "   - Meshing with snappyHexMesh"
+snappyHexMesh -overwrite >> logFile
+
+
+#------------------------------------------------------------------------------
+echo -e "   - Extrude one patch to make a 2D mesh"
+extrudeMesh  >> logFile
+
+
+#------------------------------------------------------------------------------
+echo -e "   - Change patch type in the boundary file" 
+changeDictionary  >> logFile
+
+
+#------------------------------------------------------------------------------
+echo -e "\n
+-------------------------------------------------------------------------------
+End Meshing\n
+"
+
+
+#------------------------------------------------------------------------------
+echo -e "   - Copy 0.orig to 0"
+rm -r 0
+cp -r 0.orig 0
+
+
+#------------------------------------------------------------------------------
+echo -e "   - Set field"
+setFields > logSolver
+
+
+#------------------------------------------------------------------------------
+echo -e "   - Decompose the mesh"
+decomposePar >> logSolver
+
+
+#------------------------------------------------------------------------------
+echo -e "   - Start simulation (approximately 10 - 30 minutes)"
+#mpirun -np 4 interFoam -parallel >> logSolver
+
+mpirun -np 2 interFoam  
+
+
+#------------------------------------------------------------------------------
+echo -e "   - Simulation ended\n\n"
+
+#------------------------------------------------------------------------------
+#echo -e "   - Reconstruct partition\n\n"
+#reconstructPar
+
+end_time=`date +%s`
+echo Total execution time was `expr $end_time - $start_time` s.

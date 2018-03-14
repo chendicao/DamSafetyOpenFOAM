@@ -1,0 +1,91 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  5.x                                   |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volVectorField;
+    location    "0";
+    object      U;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 1 -1 0 0 0 0];
+
+internalField   uniform (0 0 0);
+
+boundaryField
+{
+    outlet 
+    {
+        type            inletOutlet;
+        inletValue      uniform (0 0 0);
+	    value		    uniform (0 0 0);
+    }
+
+    front
+    {
+        type            empty;
+    }
+
+    back
+    {
+        type            empty;
+    }
+
+    ground
+    {
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+
+    atmosphere
+    {
+        type            pressureInletOutletVelocity;
+        value           uniform (0 0 0);
+    }
+
+    inlet
+    {
+        type            codedFixedValue;
+        value           uniform (0 0 0);
+        name            modifiedInlet;
+    
+        code
+        #{
+            vector value = vector(0,0,0);
+
+            const scalar time = this->db().time().value();
+			//const scalar f = 0.2 + 0.1*sin(2*M_PI*time/20);
+            //const scalar f = 0.05;
+			const scalar f = -0.1+0.5*sin(M_PI*(time+3));
+			//const scalar f = -0.1+0.2*sin(M_PI*(time));
+            if (f >= 0 && time<3)
+            {
+                value = vector(f,0,0);
+            }
+
+            operator==(value);
+        #};
+    }
+
+    fixedWall
+    {
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+
+    ramp
+    {
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+}
+
+
+// ************************************************************************* //
